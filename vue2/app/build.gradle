@@ -1,0 +1,94 @@
+//apply plugin: 'com.android.application'
+
+plugins {
+    id 'com.android.application'
+}
+
+def manifest = getManifest()
+
+android {
+    compileSdkVersion 30
+    defaultConfig {
+        applicationId "com.android.modulesdom"
+        minSdkVersion 21
+        targetSdkVersion 30
+        versionCode manifest['version_code']
+        versionName manifest['version']['name']
+        multiDexEnabled true
+        compileOptions {
+            sourceCompatibility JavaVersion.VERSION_1_8
+            targetCompatibility JavaVersion.VERSION_1_8
+        }
+        manifestPlaceholders = [
+            app_key:"84ac725b739db209f0614a6b2d665089"
+        ]
+    }
+    signingConfigs {
+        config {
+            keyAlias 'testalias'
+            keyPassword 'SmartChina2018'
+            storeFile file('./pda.keystore')
+            storePassword 'SmartChina2018'
+            v1SigningEnabled true
+            v2SigningEnabled true
+        }
+    }
+
+    buildTypes {
+        debug {
+            resValue "string", "app_name","${manifest.name}-debug"
+            signingConfig signingConfigs.config
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        release {
+            resValue "string", "app_name",manifest.name
+            signingConfig signingConfigs.config
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    aaptOptions {
+        additionalParameters '--auto-add-overlay'
+        ignoreAssetsPattern "!.svn:!.git:.*:!CVS:!thumbs.db:!picasa.ini:!*.scc:*~"
+    }
+
+    android.applicationVariants.all { variant ->
+        variant.outputs[0].processManifest.doLast {
+            def manifestFile = "src/main/AndroidManifest.xml"
+            def updatedContent = file(manifestFile).getText('UTF-8').replaceAll(/(?<=="com.android.)\w+(?="|.dc)/, manifest.package)
+            file(manifestFile).write(updatedContent, 'UTF-8')
+
+            def dcloudControlFile = "src/main/assets/data/dcloud_control.xml"
+            def dcloudControlUpdated = file(dcloudControlFile).getText('UTF-8').replaceAll(/(?<=appid=")\w+(?=")/, manifest.id)
+            file(dcloudControlFile).write(dcloudControlUpdated, 'UTF-8')
+        }
+   }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.aar', '*.jar'], exclude: [])
+    implementation 'androidx.appcompat:appcompat:1.0.0'
+    implementation 'androidx.legacy:legacy-support-v4:1.0.0'
+    implementation 'androidx.recyclerview:recyclerview:1.0.0'
+    implementation 'com.facebook.fresco:fresco:2.5.0'
+    implementation "com.facebook.fresco:animated-gif:2.5.0"
+    implementation 'com.github.bumptech.glide:glide:4.9.0'
+    implementation 'com.alibaba:fastjson:1.1.46.android'
+}
+
+def getManifest(){
+    def baseDir = file('src/main/assets/apps/');
+    def listFile = []
+    baseDir.eachDir{directory->
+        listFile << directory
+    }
+    if(listFile.size == 0) {
+        throw new Exception('apps下文件目录不存在')
+    }
+    def jsonFile = file(listFile[0].getPath()+'/www/manifest.json')
+    def json = new groovy.json.JsonSlurper().parseText(jsonFile.text)
+    json['package'] = json['id'].replaceAll(/([^a-zA-Z0-9])/,'')
+    json['version_code'] = json['version']['code'].toInteger()
+    return json
+}

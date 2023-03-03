@@ -1,0 +1,1 @@
+cmd /k "cd /d F:\GitHubDesktopDom\offlineDom\unappUniModules && npm run build:app-plus"

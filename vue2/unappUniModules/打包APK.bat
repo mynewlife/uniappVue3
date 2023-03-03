@@ -1,0 +1,1 @@
+cd /k "cd /d %~dp0 && npm run build:app-plus && cd.. && gradle assembleRelease && cd app\build\output\apk\release && copy app-release.apk D:\打包\V%date:~0,4%%date:~5,2%%date:~8,2%.apk"
